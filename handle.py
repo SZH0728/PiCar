@@ -1,9 +1,13 @@
 # -*- coding:utf-8 -*-
 # AUTHOR: Sun
 
+from logging import getLogger
+
 from config import MotorConfig
 from data import Command, MotorType
 from motor import MotorDriver
+
+logger = getLogger(__name__)
 
 
 class Handle(object):
@@ -44,12 +48,22 @@ class Handle(object):
             if len(command.data) != 4:
                 raise ValueError("Motor command data length must be 4")
 
+            logger.info(f"Motor command: {command.data}")
+
             self.motor.set_motors(*command.data)
         elif command.target == MotorType.servo:
             if len(command.data) != 2:
                 raise ValueError("Servo command data length must be 2")
 
+            logger.info(f"Servo command: {command.data}")
+
             self.motor.set_servo(*command.data)
+
+    def close(self):
+        """
+        @brief 关闭Handle实例
+        """
+        self.motor.close()
 
     @property
     def config(self) -> MotorConfig:
