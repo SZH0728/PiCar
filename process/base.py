@@ -26,6 +26,7 @@ class BaseProcess(ABC, Generic[T]):
         self.__origin_frame: ndarray[uint8, ...] | None = None
 
         self.__debug: list[tuple[str, ndarray[uint8, ...]]] = []
+        self.debug: bool = False
 
     @abstractmethod
     def handle(self) -> Command:

@@ -19,7 +19,8 @@ class ExampleConfig(BaseConfig):
 class ExampleProcess(BaseProcess[ExampleConfig]):
     def handle(self) -> Command:
 
-        self.debug_picture('example', self.origin_frame)
+        if self.debug:
+            self.debug_picture('example', self.origin_frame)
 
         logger.info(f'Example process: {self.config.description}')
 

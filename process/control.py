@@ -36,12 +36,17 @@ class Control(object):
         if not self._process:
             raise RuntimeError('No process')
 
+        if self._config.save_debug and picture.uid % self._config.interval == 0:
+            self._process.debug = True
+        else:
+            self._process.debug = False
+
         command: Command = self._process.process(picture)
 
-        if self._config.save_debug and self._process.uid % self._config.interval == 0:
-            for description, frame in self._process.read_debug():
-                image = cvtColor(frame, COLOR_YUV2BGR_I420, frame)
-                imwrite(f'./debug/{self._process.uid}_{description}.jpg', image)
+
+        for description, frame in self._process.read_debug():
+            image = cvtColor(frame, COLOR_YUV2BGR_I420, frame)
+            imwrite(f'./debug/{self._process.uid}_{description}.jpg', image)
 
         return command
 
