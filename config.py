@@ -93,6 +93,9 @@ class Config(object):
     @brief 全局配置数据类
     @details 包含整个小车系统的各项配置参数
     """
+    web: bool = True
+    port: int = 8080
+
     camera: CameraConfig = field(default_factory=CameraConfig)  #: 摄像头配置
     motor: MotorConfig = field(default_factory=MotorConfig)     #: 电机配置
     control: ControlConfig = field(default_factory=ControlConfig)
