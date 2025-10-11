@@ -1,12 +1,16 @@
 # -*- coding:utf-8 -*-
 # AUTHOR: Sun
 
+from logging import getLogger
 from time import sleep
 
 from picamera2 import Picamera2
+from libcamera import Transform
 
 from config import CameraConfig, BaseCameraConfigType
 from data import Picture
+
+logger = getLogger(__name__)
 
 
 class CameraDriver(object):
@@ -44,14 +48,17 @@ class CameraDriver(object):
         }
 
         camera_config = self._create_camera_configuration(main_config)
+
+        if self._config.reverse:
+            camera_config['transform'] = Transform(hflip=1, vflip=1)
+
         self.camera.configure(camera_config)
-        self.camera.set_controls({"Rotation": self._config.rotation})
         self.camera.start()
 
         if self._config.fix_AE_AWB:
             self._fix_auto_exposure_and_white_balance()
 
-    def _create_camera_configuration(self, main_config: dict):
+    def _create_camera_configuration(self, main_config: dict) -> dict:
         """
         @brief 根据基础配置类型创建摄像头配置
         
@@ -93,11 +100,19 @@ class CameraDriver(object):
         """
         self._frame_id += 1
 
+        logger.debug(f'Capture frame {self._frame_id}')
+
         return Picture(
             uid=self._frame_id,
             frame=self.camera.capture_array(),
             g={}
         )
+
+    def close(self):
+        """
+        @brief 关闭摄像头连接
+        """
+        self.camera.close()
 
     @property
     def config(self) -> CameraConfig:
