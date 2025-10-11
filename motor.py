@@ -1,8 +1,12 @@
 # -*- coding:utf-8 -*-
 # AUTHOR: Sun
 
-from smbus2 import SMBus
+from logging import getLogger
 from time import sleep
+
+from smbus2 import SMBus
+
+logger = getLogger(__name__)
 
 
 class CarI2CError(Exception):
@@ -110,8 +114,12 @@ class MotorDriver(object):
         """
         left_direction = 0 if int(left_dir) == 0 else 1
         right_direction = 0 if int(right_dir) == 0 else 1
+
         ls = self._clamp(left_speed, 0, 180)
         rs = self._clamp(right_speed, 0, 180)
+
+        logger.debug(f"Motor: left_dir={left_direction}, left_speed={ls}, right_dir={right_direction}, right_speed={rs}")
+
         self._write_block(self.REG_MOTOR, [left_direction, ls, right_direction, rs])
 
     def set_servo(self, channel: int, angle: int) -> None:
@@ -122,9 +130,14 @@ class MotorDriver(object):
         @param angle 舵机角度: 0-180
         """
         ch = int(channel)
+
         if ch < 1 or ch > 4:
             raise CarProtocolError("Servo channel should be between 1 and 4")
+
         ang = self._clamp(angle, 0, 180)
+
+        logger.debug(f"Servo: channel={ch}, angle={ang}")
+
         self._write_block(self.REG_SERVO, [ch, ang])
 
     def forward(self, speed: int) -> None:
@@ -166,4 +179,6 @@ class MotorDriver(object):
 
 
 if __name__ == "__main__":
-    pass
+    motor = MotorDriver()
+    motor.stop_all()
+    motor.close()
