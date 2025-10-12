@@ -8,6 +8,7 @@ from dataclasses import is_dataclass
 
 from bridge import Client
 from config import Config
+from data import Command, MotorType
 
 from camera import CameraDriver
 from process.control import Control
@@ -410,7 +411,90 @@ class Restart(Tool):
             self.return_error(f'failed to restart handle: {str(e)}')
 
 
-tools: list[Type[Tool]] = [Read, Set, Restart]
+class Send(Tool):
+    """
+    @brief 发送命令的工具类
+    @details 实现向handle发送Command对象的功能，继承自Tool基类
+    """
+    def __init__(self, client: Client, camera: CameraDriver, control: Control, handle: Handle, config: Config):
+        """
+        @brief 初始化Send工具实例
+        
+        @param client 桥接客户端对象
+        @param camera 摄像头驱动对象
+        @param control 控制对象
+        @param handle 句柄对象
+        @param config 配置对象
+        """
+        super().__init__(client, camera, control, handle, config)
+
+        self.name = 'send'
+
+    def handle(self):
+        """
+        @brief 处理发送命令
+        @details 命令格式: send target data1,data2,...
+                 target可以是motor, servo, stop, forward, backward
+                 data是逗号分隔的整数列表
+        """
+        args = self.get_arg()
+        if len(args) > 2:
+            self.return_warning(f'insufficient arguments: {args}')
+            return
+
+        if self.get_karg():
+            self.return_warning(f'unknown arguments: {self.get_karg()}')
+            return
+
+        target_str = args[0]
+        data_str = args[1] if len(args) > 1 else ''
+        
+        # 解析target
+        if target_str in ('motor', 'forward', 'backward', 'stop'):
+            target = MotorType.motor
+        elif target_str == 'servo':
+            target = MotorType.servo
+        else:
+            self.return_error(f'unknown target: {target_str}')
+            return
+
+        # 解析data
+        try:
+            data = tuple(int(x.strip()) for x in data_str.split(',') if x.strip())
+        except ValueError:
+            self.return_error(f'invalid data format: {data_str}')
+            return
+
+        if target_str == 'motor' and len(data) != 4:
+            self.return_error(f'invalid motor command data length: {len(data)}')
+            return
+        elif target_str == 'servo' and len(data) != 2:
+            self.return_error(f'invalid servo command data length: {len(data)}')
+            return
+        elif target_str in ('forward', 'backward') and len(data) != 1:
+            self.return_error(f'invalid {target_str} command data length: {len(data)}')
+            return
+        elif target_str == 'stop' and len(data) != 0:
+            self.return_error(f'invalid stop command data length: {len(data)}')
+            return
+
+        if target_str == 'stop':
+            data = (0, 0, 0, 0)
+        elif target_str == 'forward':
+            data = (0, data[0], 0, data[0])
+        elif target_str == 'backward':
+            data = (1, data[0], 1, data[0])
+
+        # 创建并发送命令
+        try:
+            command = Command(uid=0, target=target, data=data)
+            self.handle_object.handle_command(command)
+            self.return_message(f'command sent: target={target_str}, data={data}')
+        except Exception as e:
+            self.return_error(f'failed to send command: {str(e)}')
+
+
+tools: list[Type[Tool]] = [Read, Set, Restart, Send]
 
 
 class Console(object):
