@@ -7,7 +7,7 @@ from cv2 import cvtColor, imwrite
 
 from process.base import BaseProcess, BaseConfig
 from process.example import ExampleProcess, ExampleConfig
-from process.follow_line import FollowLineProcess, FollowLineConfig
+from process.morphology import MorphologyProcess, MorphologyConfig
 
 from config import ControlConfig, ProcessConfig
 from data import Picture, Command, MotorType
@@ -15,7 +15,7 @@ from data import Picture, Command, MotorType
 """处理工作流注册列表: 包含所有可用的处理工作流及其配置类型"""
 PROCESS: list[tuple[Type[BaseProcess], Type[BaseConfig]]] = [
     (ExampleProcess, ExampleConfig),
-    (FollowLineProcess, FollowLineConfig),
+    (MorphologyProcess, MorphologyConfig),
 ]
 
 
@@ -74,8 +74,9 @@ class Control(object):
 
         # 保存调试图像
         for description, frame, colour in self._process.read_debug():
-            image = cvtColor(frame, colour, frame)
-            imwrite(f'./debug/{self._process.uid}_{description}.jpg', image)
+            if colour:
+                frame = cvtColor(frame, colour, frame)
+            imwrite(f'./debug/{self._process.uid}_{description}.jpg', frame)
 
         return command
 
