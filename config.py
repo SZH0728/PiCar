@@ -1,8 +1,9 @@
 # -*- coding:utf-8 -*-
 # AUTHOR: Sun
 
-from dataclasses import dataclass, field
 from enum import Enum
+from dataclasses import dataclass, field
+from pickle import dumps, loads
 
 from process.base import BaseConfig
 
@@ -77,6 +78,10 @@ class ProcessConfig(object):
         @throws AttributeError 当指定的处理工作流配置不存在时抛出异常
         @return 对应的处理工作流配置
         """
+        if item.startswith('_'):
+            super().__getattribute__(item)
+            return
+
         if item in self._process_config_map:
             return self._process_config_map[item]
 
@@ -146,6 +151,28 @@ class Config(object):
     motor: MotorConfig = field(default_factory=MotorConfig)     #: 电机配置
     control: ControlConfig = field(default_factory=ControlConfig)  #: 控制配置
     process: ProcessConfig | None = None                        #: 处理配置
+
+
+
+def serialize(config: Config, file: str):
+    """
+    @brief 将配置数据序列化并保存到文件中
+
+    @param config 配置数据
+    @param file 文件路径
+    """
+    with open(file, 'wb') as f:
+        f.write(dumps(config))
+
+def deserialize(file: str) -> Config:
+    """
+    @brief 从文件中反序列化配置数据
+
+    @param file 文件路径
+    @return 配置数据
+    """
+    with open(file, 'rb') as f:
+        return loads(f.read())
 
 if __name__ == '__main__':
     pass
