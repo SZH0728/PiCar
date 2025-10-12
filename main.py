@@ -58,8 +58,8 @@ def main():
             picture = camera.get_frame()
             commands = control.process(picture)
 
-            # for command in commands:
-            #     handle.handle_command(command)
+            for command in commands:
+                handle.handle_command(command)
 
             if config.web:
                 console_object.process()
