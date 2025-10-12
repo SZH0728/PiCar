@@ -26,11 +26,11 @@ class CameraConfig(object):
     """
     base_config_type: BaseCameraConfigType = BaseCameraConfigType.VideoConfiguration  #: 基本配置类型
     size: tuple[int, int] = (640, 360)  #: 图像尺寸(宽度,高度)
-    format: str = 'YUV420'              #: 图像格式
+    format: str = 'BGR888'                 #: 图像格式
 
     reverse: bool = True                #: 图像翻转
 
-    fix_AE_AWB: bool = True             #: 是否固定自动曝光和白平衡
+    fix_AE_AWB: bool = False             #: 是否固定自动曝光和白平衡
     fix_wait_time: float = 0.5          #: 自动曝光和白平衡固定前的等待时间(秒)
 
 
