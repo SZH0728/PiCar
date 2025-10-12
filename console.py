@@ -224,11 +224,9 @@ class Set(Tool):
         """
         if len(self.get_arg()) < 2:
             self.return_error(f'insufficient arguments: {self.get_arg()}')
-            return
 
         if len(self.get_arg()) > 2:
             self.return_error(f'too many arguments: {self.get_arg()}')
-            return
 
         if self.get_karg():
             self.return_error(f'unknown arguments: {self.get_karg()}')
@@ -315,7 +313,95 @@ class Set(Tool):
         raise ValueError(f"Cannot convert '{value_str}' to {type(original_value).__name__}")
 
 
-tools: list[Type[Tool]] = [Read, Set]
+class Restart(Tool):
+    """
+    @brief 重启系统组件的工具类
+    @details 实现重启摄像头、控制模块、句柄等系统组件的功能，继承自Tool基类
+    """
+    def __init__(self, client: Client, camera: CameraDriver, control: Control, handle: Handle, config: Config):
+        """
+        @brief 初始化Restart工具实例
+        
+        @param client 桥接客户端对象
+        @param camera 摄像头驱动对象
+        @param control 控制对象
+        @param handle 句柄对象
+        @param config 配置对象
+        """
+        super().__init__(client, camera, control, handle, config)
+
+        self.name = 'restart'
+
+    def handle(self):
+        """
+        @brief 处理重启命令
+        @details 命令格式: restart [component]
+                 可以指定组件: camera, control, handle
+                 或者使用 restart all 重启所有组件
+        """
+        if len(self.get_arg()) != 1:
+            self.return_error(f'incorrect arguments number: {self.get_arg()}')
+
+        if self.get_karg():
+            self.return_error(f'unknown arguments: {self.get_karg()}')
+
+        # 重启指定组件
+        component = self.get_arg(0)
+        if component == 'camera':
+            self._restart_camera()
+        elif component == 'control':
+            self._restart_control()
+        elif component == 'handle':
+            self._restart_handle()
+        elif component == 'all':
+            self._restart_all()
+        else:
+            self.return_error(f'unknown component: {component}')
+
+    def _restart_all(self):
+        """
+        @brief 重启所有组件
+        """
+        try:
+            self._restart_camera()
+            self._restart_control()
+            self._restart_handle()
+            self.return_message('all components restarted')
+        except Exception as e:
+            self.return_error(f'failed to restart all components: {str(e)}')
+
+    def _restart_camera(self):
+        """
+        @brief 重启摄像头组件
+        """
+        try:
+            self.camera_object.restart_camera()
+            self.return_message('camera restarted')
+        except Exception as e:
+            self.return_error(f'failed to restart camera: {str(e)}')
+
+    def _restart_control(self):
+        """
+        @brief 重启控制组件
+        """
+        try:
+            self.control_object.reset_process()
+            self.return_message('control restarted')
+        except Exception as e:
+            self.return_error(f'failed to restart control: {str(e)}')
+
+    def _restart_handle(self):
+        """
+        @brief 重启句柄组件
+        """
+        try:
+            self.handle_object.restart_motor()
+            self.return_message('handle restarted')
+        except Exception as e:
+            self.return_error(f'failed to restart handle: {str(e)}')
+
+
+tools: list[Type[Tool]] = [Read, Set, Restart]
 
 
 class Console(object):
