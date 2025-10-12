@@ -132,6 +132,14 @@ class Tool(ABC):
         """
         self.__client.put(f'info:{message}')
 
+    def return_warning(self, message: str):
+        """
+        @brief 添加警告消息
+
+        @param message 警告消息内容
+        """
+        self.__client.put(f'warning:{message}')
+
     def return_error(self, message: str):
         """
         @brief 添加错误消息
@@ -172,14 +180,14 @@ class Read(Tool):
         @brief 处理读取配置命令
         """
         if len(self.get_arg()) > 1:
-            self.return_error(f'too many arguments: {self.get_arg()}')
+            self.return_warning(f'too many arguments: {self.get_arg()}')
 
         if not self.get_arg():
-            self.return_error(f'no arguments was given')
+            self.return_warning(f'no arguments was given')
             return
 
         if self.get_karg():
-            self.return_error(f'unknown arguments: {self.get_karg()}')
+            self.return_warning(f'unknown arguments: {self.get_karg()}')
 
         arg = self.get_arg(0)
         tokens = arg.split('.')
@@ -223,13 +231,13 @@ class Set(Tool):
         @details 命令格式: set 配置地址 新配置数据
         """
         if len(self.get_arg()) < 2:
-            self.return_error(f'insufficient arguments: {self.get_arg()}')
+            self.return_warning(f'insufficient arguments: {self.get_arg()}')
 
         if len(self.get_arg()) > 2:
-            self.return_error(f'too many arguments: {self.get_arg()}')
+            self.return_warning(f'too many arguments: {self.get_arg()}')
 
         if self.get_karg():
-            self.return_error(f'unknown arguments: {self.get_karg()}')
+            self.return_warning(f'unknown arguments: {self.get_karg()}')
 
         config_path = self.get_arg(0)
         new_value_str = self.get_arg(1)
@@ -340,10 +348,10 @@ class Restart(Tool):
                  或者使用 restart all 重启所有组件
         """
         if len(self.get_arg()) != 1:
-            self.return_error(f'incorrect arguments number: {self.get_arg()}')
+            self.return_warning(f'incorrect arguments number: {self.get_arg()}')
 
         if self.get_karg():
-            self.return_error(f'unknown arguments: {self.get_karg()}')
+            self.return_warning(f'unknown arguments: {self.get_karg()}')
 
         # 重启指定组件
         component = self.get_arg(0)
