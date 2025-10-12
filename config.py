@@ -122,6 +122,16 @@ class ProcessConfig(object):
 
         self._process_config_map[key] = value
 
+    def __str__(self):
+        string: str = ''
+        for key, value in self._process_config_map.items():
+            string += f'{key}={value}, '
+
+        return string[:-2]
+
+    def __repr__(self):
+        return f'Process({self.__str__()})'
+
 
 @dataclass
 class Config(object):
