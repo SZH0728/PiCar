@@ -5,7 +5,8 @@ from json import dumps
 from pathlib import Path
 from threading import Thread
 
-from bottle import route, run, static_file, request
+from bottle import Bottle, static_file, request
+from waitress import serve
 
 from bridge import Bridge, Client
 
@@ -13,7 +14,9 @@ bridge = Bridge()
 server_client: Client | None = bridge.A
 pi_client: Client | None = bridge.B
 
-@route('/')
+app = Bottle()
+
+@app.route('/')
 def index():
     """
     @brief 返回主页文件
@@ -22,7 +25,7 @@ def index():
     """
     return static_file('index.html', root='./static')
 
-@route('/favicon.ico')
+@app.route('/favicon.ico')
 def favicon():
     """
     @brief 返回网站图标文件
@@ -31,7 +34,7 @@ def favicon():
     """
     return static_file('favicon.ico', root='./static')
 
-@route('/assets/<filename:path>')
+@app.route('/assets/<filename:path>')
 def static(filename):
     """
     @brief 返回静态资源文件
@@ -41,7 +44,7 @@ def static(filename):
     """
     return static_file(filename, root='./static')
 
-@route('/command/send', method='POST')
+@app.route('/command/send', method='POST')
 def command_send():
     """
     @brief 发送指令
@@ -53,7 +56,7 @@ def command_send():
         return 'OK'
     return 'ERROR'
 
-@route('/command/receive')
+@app.route('/command/receive')
 def command_receive():
     """
     @brief 接收所有信息
@@ -68,7 +71,7 @@ def command_receive():
                 messages.append(msg)
     return dumps(messages)
 
-@route('/image/list')
+@app.route('/image/list')
 def image_list():
     """
     @brief 获取图像文件列表
@@ -101,10 +104,10 @@ def image_list():
     
     # 筛选出所有具有最大数字的文件
     result = valid_files[max_number]
-    
+
     return dumps(result)
 
-@route('/image/<filename>')
+@app.route('/image/<filename>')
 def get_image(filename):
     """
     @brief 获取指定图像文件
@@ -114,15 +117,23 @@ def get_image(filename):
     """
     return static_file(filename, root='./debug')
 
+def run_server_function(port: int = 8080):
+    """
+    @brief 启动Web服务器
+    @details 在指定端口上启动Web服务器
+    @param port 服务器端口号，默认为8080
+    """
+    serve(app, host='0.0.0.0', port=port, threads=2)
+
 def run_server(port: int = 8080):
     """
     @brief 启动Web服务器
     @details 在指定端口上以线程方式启动Web服务器
     @param port 服务器端口号，默认为8080
     """
-    thread = Thread(target=run, kwargs={'host': '0.0.0.0', 'port': port, 'quiet': True})
+    thread = Thread(target=run_server_function, kwargs={'port': port})
     thread.start()
 
 
 if __name__ == '__main__':
-    run(host='0.0.0.0', port=8080)
+    serve(app, host='0.0.0.0', port=8080, threads=2)
