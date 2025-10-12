@@ -178,6 +178,7 @@ class Read(Tool):
     def handle(self):
         """
         @brief 处理读取配置命令
+        @detail 命令格式: read 配置地址
         """
         if len(self.get_arg()) > 1:
             self.return_warning(f'too many arguments: {self.get_arg()}')
