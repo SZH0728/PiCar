@@ -7,12 +7,15 @@ from cv2 import cvtColor, imwrite
 
 from process.base import BaseProcess, BaseConfig
 from process.example import ExampleProcess, ExampleConfig
+from process.follow_line import FollowLineProcess, FollowLineConfig
+
 from config import ControlConfig, ProcessConfig
-from data import Picture, Command
+from data import Picture, Command, MotorType
 
 """处理工作流注册列表: 包含所有可用的处理工作流及其配置类型"""
 PROCESS: list[tuple[Type[BaseProcess], Type[BaseConfig]]] = [
     (ExampleProcess, ExampleConfig),
+    (FollowLineProcess, FollowLineConfig),
 ]
 
 
@@ -43,7 +46,9 @@ class Control(object):
 
         self.reset_process()
 
-    def process(self, picture: Picture) -> Command:
+        self._flush: bool = True
+
+    def process(self, picture: Picture) -> tuple[Command]:
         """
         @brief 处理图像并生成控制命令
         @details 对输入图像执行当前选择的处理工作流，并根据配置保存调试信息
@@ -55,12 +60,17 @@ class Control(object):
         if not self._process:
             raise RuntimeError('No process')
 
+        if self._flush:
+            servo = Command(0, MotorType.servo, (1, self._process.config.angle), {})
+            self._flush = False
+            return (servo,)
+
         if self._config.save_debug and picture.uid % self._config.interval == 0:
             self._process.debug = True
         else:
             self._process.debug = False
 
-        command: Command = self._process.process(picture)
+        command: tuple[Command] = self._process.process(picture)
 
         # 保存调试图像
         for description, frame, colour in self._process.read_debug():
@@ -77,6 +87,7 @@ class Control(object):
         process_object: Type[BaseProcess] = self.process_object_map[self._config.used]
         process_config: BaseConfig = self.process_config_map[self._config.used]
         self._process = process_object(process_config)
+        self._flush = True
 
     def get_process_config(self) -> ProcessConfig:
         """
