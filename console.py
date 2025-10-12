@@ -13,7 +13,20 @@ from handle import Handle
 
 
 class Tool(ABC):
+    """
+    @brief 控制台工具抽象基类
+    @details 定义控制台工具的基本结构和功能，所有具体工具都需要继承此类
+    """
     def __init__(self, client: Client, camera: CameraDriver, control: Control, handle: Handle, config: Config):
+        """
+        @brief 初始化Tool实例
+        
+        @param client 桥接客户端对象
+        @param camera 摄像头驱动对象
+        @param control 控制对象
+        @param handle 句柄对象
+        @param config 配置对象
+        """
         self.name: str | None = None
         self.__client = client
 
@@ -22,28 +35,35 @@ class Tool(ABC):
         self.handle_object = handle
         self.config_object = config
 
-        self.__messages: list[str] = []
-
         self.__args: list[str] = []
         self.__kargs: dict[str, str] = {}
         self.__flag: set[str] = set()
 
     def process(self, args: str):
+        """
+        @brief 处理命令参数并执行具体操作
+        
+        @param args 命令行参数字符串
+        """
         self._clear_flags()
         self._analysis_arg(args)
 
         self.handle()
 
-        for message in self.__messages:
-            self.__client.put(message)
-
     def _clear_flags(self):
+        """
+        @brief 清除所有标志位和参数
+        """
         self.__args.clear()
         self.__kargs.clear()
         self.__flag.clear()
-        self.__messages.clear()
 
     def _analysis_arg(self, args: str):
+        """
+        @brief 解析命令行参数
+        
+        @param args 命令行参数字符串
+        """
         if not args:
             return
 
@@ -67,6 +87,12 @@ class Tool(ABC):
             index += 1
 
     def get_arg(self, index: int | None = None) -> str | None | list[str]:
+        """
+        @brief 获取位置参数
+        
+        @param index 参数索引，如果为None则返回所有参数
+        @return 指定索引的参数值，如果索引超出范围则返回None，如果index为None则返回所有参数列表
+        """
         if index is not None:
             if 0 <= index < len(self.__args):
                 return self.__args[index]
@@ -76,32 +102,73 @@ class Tool(ABC):
         return self.__args
 
     def get_karg(self, key: str | None = None) -> str | None | dict[str, str]:
+        """
+        @brief 获取关键字参数
+        
+        @param key 关键字参数键名，如果为None则返回所有关键字参数
+        @return 指定键的关键字参数值，如果键不存在则返回None，如果key为None则返回所有关键字参数字典
+        """
         if key is not None:
             return self.__kargs.get(key, None)
         else:
             return self.__kargs
 
     def has_flag(self, flag: str) -> bool:
+        """
+        @brief 检查是否存在指定标志位
+        
+        @param flag 标志位名称
+        @return 如果存在指定标志位则返回True，否则返回False
+        """
         return flag in self.__flag
 
     def return_message(self, message: str):
-        self.__messages.append(f'info:{message}')
+        """
+        @brief 添加返回消息
+        
+        @param message 要返回的消息内容
+        """
+        self.__client.put(f'info:{message}')
 
     def return_error(self, message: str):
-        self.__messages.append(f'error:{message}')
+        """
+        @brief 添加错误消息
+        
+        @param message 错误消息内容
+        """
+        self.__client.put(f'error:{message}')
 
     @abstractmethod
     def handle(self):
+        """
+        @brief 抽象处理方法，由子类实现具体的处理逻辑
+        """
         pass
 
 
 class Read(Tool):
+    """
+    @brief 读取配置信息的工具类
+    @details 实现读取系统配置信息的功能，继承自Tool基类
+    """
     def __init__(self, client: Client, camera: CameraDriver, control: Control, handle: Handle, config: Config):
+        """
+        @brief 初始化Read工具实例
+        
+        @param client 桥接客户端对象
+        @param camera 摄像头驱动对象
+        @param control 控制对象
+        @param handle 句柄对象
+        @param config 配置对象
+        """
         super().__init__(client, camera, control, handle, config)
 
         self.name = 'read'
 
     def handle(self):
+        """
+        @brief 处理读取配置命令
+        """
         if len(self.get_arg()) > 1:
             self.return_error(f'too many arguments: {self.get_arg()}')
 
@@ -133,7 +200,20 @@ tools: list[Type[Tool]] = [Read]
 
 
 class Console(object):
+    """
+    @brief 控制台主类
+    @details 负责解析和分发控制台命令到相应的工具处理器
+    """
     def __init__(self, client: Client, camera: CameraDriver, control: Control, handle: Handle, config: Config):
+        """
+        @brief 初始化Console实例
+        
+        @param client 桥接客户端对象
+        @param camera 摄像头驱动对象
+        @param control 控制对象
+        @param handle 句柄对象
+        @param config 配置对象
+        """
         self._client = client
 
         self._camera = camera
@@ -148,6 +228,9 @@ class Console(object):
             self._tools[tool.name] = tool
 
     def process(self):
+        """
+        @brief 处理控制台命令
+        """
         while not self._client.receive_is_empty():
             command = self._client.get()
 
@@ -158,6 +241,11 @@ class Console(object):
             self.handle(command)
 
     def handle(self, command: str):
+        """
+        @brief 处理单个命令
+        
+        @param command 待处理的命令字符串
+        """
         tool: str = command.split(' ')[0]
         args: str = command[len(tool) + 1:]
 
