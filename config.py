@@ -46,31 +46,61 @@ class MotorConfig(object):
 
 @dataclass
 class ControlConfig(object):
-    used: str = 'example'
+    """
+    @brief 控制配置数据类
+    @details 存储控制模块相关的配置参数
+    """
+    used: str = 'example'   #: 使用的控制模块
 
-    save_debug: bool = True
-    interval: int = 30
+    save_debug: bool = True  #: 是否保存调试信息
+    interval: int = 30       #: 控制间隔时间(毫秒)
 
 
 class ProcessConfig(object):
+    """
+    @brief 处理工作流配置管理类
+    @details 管理不同处理工作流的配置映射，提供获取和设置配置的方法
+    """
     __slots__ = ['_process_config_map']
 
     def __init__(self, process_config_map: dict[str, BaseConfig]):
+        """
+        @brief 初始化处理工作流配置管理器
+        @param process_config_map 处理工作流配置映射字典
+        """
         self._process_config_map = process_config_map
 
     def __getattr__(self, item):
+        """
+        @brief 通过属性方式获取处理工作流配置
+        @param item 处理工作流名称
+        @throws AttributeError 当指定的处理工作流配置不存在时抛出异常
+        @return 对应的处理工作流配置
+        """
         if item in self._process_config_map:
             return self._process_config_map[item]
 
         raise AttributeError(f"Process {item} config not found")
 
     def __getitem__(self, item):
+        """
+        @brief 通过索引方式获取处理工作流配置
+        @param item 处理工作流名称
+        @throws KeyError 当指定的处理工作流配置不存在时抛出异常
+        @return 对应的处理工作流配置
+        """
         if not item in self._process_config_map:
             raise KeyError(f"Process {item} config not found")
 
         return self._process_config_map[item]
 
     def __setattr__(self, key: str, value):
+        """
+        @brief 通过属性方式设置处理工作流配置
+        @param key 处理工作流名称
+        @param value 处理工作流配置值
+        @throws AttributeError 当指定的处理工作流配置不存在时抛出异常
+        """
         if key.startswith('_'):
             super().__setattr__(key, value)
             return
@@ -81,6 +111,12 @@ class ProcessConfig(object):
         self._process_config_map[key] = value
 
     def __setitem__(self, key, value):
+        """
+        @brief 通过索引方式设置处理工作流配置
+        @param key 处理工作流名称
+        @param value 处理工作流配置值
+        @throws KeyError 当指定的处理工作流配置不存在时抛出异常
+        """
         if not key in self._process_config_map:
             raise KeyError(f"Process {key} config not found")
 
@@ -93,13 +129,13 @@ class Config(object):
     @brief 全局配置数据类
     @details 包含整个小车系统的各项配置参数
     """
-    web: bool = True
-    port: int = 8080
+    web: bool = True   #: 是否启用Web服务
+    port: int = 8080   #: Web服务端口号
 
     camera: CameraConfig = field(default_factory=CameraConfig)  #: 摄像头配置
     motor: MotorConfig = field(default_factory=MotorConfig)     #: 电机配置
-    control: ControlConfig = field(default_factory=ControlConfig)
-    process: ProcessConfig | None = None
+    control: ControlConfig = field(default_factory=ControlConfig)  #: 控制配置
+    process: ProcessConfig | None = None                        #: 处理配置
 
 if __name__ == '__main__':
     pass
