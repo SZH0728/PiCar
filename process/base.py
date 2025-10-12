@@ -19,7 +19,9 @@ class BaseConfig(object):
     @brief 处理工作流基础配置类
     @details 作为所有处理工作流配置类的基类，定义配置的基本结构
     """
-    name: str  #: 配置名称
+    name: str         #: 配置名称
+
+    angle: int = 120  #: 摄像头旋转角度
 
 
 class BaseProcess(ABC, Generic[T]):
@@ -44,7 +46,7 @@ class BaseProcess(ABC, Generic[T]):
         self.debug: bool = False                             #: 调试模式开关
 
     @abstractmethod
-    def handle(self) -> Command:
+    def handle(self) -> Command | tuple[Command]:
         """
         @brief 抽象处理方法
         @details 子类必须实现此方法，用于执行具体的图像处理逻辑并返回控制命令
@@ -53,7 +55,7 @@ class BaseProcess(ABC, Generic[T]):
         """
         pass
 
-    def process(self, target: Picture) -> Command:
+    def process(self, target: Picture) -> tuple[Command]:
         """
         @brief 处理图像的主要入口方法
         @details 接收图像数据，调用handle方法进行处理，并返回相应的控制命令
@@ -68,12 +70,16 @@ class BaseProcess(ABC, Generic[T]):
 
         self.g = target.g
 
-        command = self.handle()
+        commands: Command | tuple[Command] = self.handle()
 
-        command.uid = self.__uid
-        command.g = self.g
+        if isinstance(commands, Command):
+            commands: tuple[Command] = (commands,)
 
-        return command
+        for command in commands:
+            command.uid = self.__uid
+            command.g = self.g
+
+        return commands
 
     def debug_picture(self, description: str, frame: ndarray[uint8, ...], colour: int = COLOR_YUV2BGR_I420):
         """
