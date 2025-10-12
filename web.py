@@ -15,14 +15,30 @@ pi_client: Client | None = bridge.B
 
 @route('/')
 def index():
+    """
+    @brief 返回主页文件
+    @details 返回位于./static目录下的index.html文件
+    @return index.html文件内容
+    """
     return static_file('index.html', root='./static')
 
 @route('/favicon.ico')
 def favicon():
+    """
+    @brief 返回网站图标文件
+    @details 返回位于./static目录下的favicon.ico文件
+    @return favicon.ico文件内容
+    """
     return static_file('favicon.ico', root='./static')
 
 @route('/assets/<filename:path>')
 def static(filename):
+    """
+    @brief 返回静态资源文件
+    @details 返回位于./static目录下的指定静态资源文件
+    @param filename 静态资源文件名
+    @return 指定的静态资源文件内容
+    """
     return static_file(filename, root='./static')
 
 @route('/command/send', method='POST')
@@ -42,6 +58,7 @@ def command_receive():
     """
     @brief 接收所有信息
     @details 通过server_client接收所有信息，组成字符串数组返回
+    @return JSON格式的字符串数组
     """
     messages = []
     if server_client:
@@ -53,6 +70,11 @@ def command_receive():
 
 @route('/image/list')
 def image_list():
+    """
+    @brief 获取图像文件列表
+    @details 检查debug目录下所有符合格式的文件，并返回具有最大数字前缀的文件列表
+    @return JSON格式的文件名数组
+    """
     # 检查debug目录是否存在
     debug_dir = Path('./debug')
     if not debug_dir.exists():
@@ -84,9 +106,20 @@ def image_list():
 
 @route('/image/<filename>')
 def get_image(filename):
+    """
+    @brief 获取指定图像文件
+    @details 返回位于./debug目录下的指定图像文件
+    @param filename 图像文件名
+    @return 指定的图像文件内容
+    """
     return static_file(filename, root='./debug')
 
 def run_server(port: int = 8080):
+    """
+    @brief 启动Web服务器
+    @details 在指定端口上以线程方式启动Web服务器
+    @param port 服务器端口号，默认为8080
+    """
     thread = Thread(target=run, kwargs={'host': '0.0.0.0', 'port': port, 'quiet': True})
     thread.start()
 
