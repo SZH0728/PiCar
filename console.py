@@ -3,6 +3,8 @@
 
 from abc import ABC, abstractmethod
 from typing import Type
+from enum import Enum
+from dataclasses import is_dataclass
 
 from bridge import Client
 from config import Config
@@ -67,7 +69,7 @@ class Tool(ABC):
         if not args:
             return
 
-        tokens: list[str] = args.split(' ')
+        tokens: list[str] = [i for i in args.split(' ') if i]
         index: int = 0
 
         while index < len(tokens):
@@ -186,17 +188,134 @@ class Read(Tool):
             tokens = tokens[1:]
 
         current_config = self.config_object
-        for token in tokens:
-            try:
+        try:
+            for token in tokens:
                 current_config = getattr(current_config, token)
-            except AttributeError:
-                self.return_error(f'unknown config: {arg}')
-                return
+        except AttributeError:
+            self.return_error(f'unknown config: {arg}')
+            return
 
         self.return_message(f'{arg}: {current_config}')
 
 
-tools: list[Type[Tool]] = [Read]
+class Set(Tool):
+    """
+    @brief 设置配置信息的工具类
+    @details 实现设置系统配置信息的功能，继承自Tool基类
+    """
+    def __init__(self, client: Client, camera: CameraDriver, control: Control, handle: Handle, config: Config):
+        """
+        @brief 初始化Set工具实例
+        
+        @param client 桥接客户端对象
+        @param camera 摄像头驱动对象
+        @param control 控制对象
+        @param handle 句柄对象
+        @param config 配置对象
+        """
+        super().__init__(client, camera, control, handle, config)
+
+        self.name = 'set'
+
+    def handle(self):
+        """
+        @brief 处理设置配置命令
+        @details 命令格式: set 配置地址 新配置数据
+        """
+        if len(self.get_arg()) < 2:
+            self.return_error(f'insufficient arguments: {self.get_arg()}')
+            return
+
+        if len(self.get_arg()) > 2:
+            self.return_error(f'too many arguments: {self.get_arg()}')
+            return
+
+        if self.get_karg():
+            self.return_error(f'unknown arguments: {self.get_karg()}')
+
+        config_path = self.get_arg(0)
+        new_value_str = self.get_arg(1)
+        
+        tokens = config_path.split('.')
+
+        if tokens[0] == 'config':
+            tokens = tokens[1:]
+
+        # 获取要设置的配置项的父对象和属性名
+        parent_config = self.config_object
+        attr_name = tokens[-1]
+        try:
+            for token in tokens[:-1]:
+                parent_config = getattr(parent_config, token)
+
+            original_value = getattr(parent_config, attr_name)
+        except AttributeError:
+            self.return_error(f'unknown config: {config_path}')
+            return
+
+        # 转换新值为与原值相同的类型
+        try:
+            new_value = self._convert_value(new_value_str, original_value, attr_name)
+        except Exception as e:
+            self.return_error(f'failed to convert value: {str(e)}')
+            return
+
+        # 设置新值
+        try:
+            setattr(parent_config, attr_name, new_value)
+            self.return_message(f'{config_path}: {original_value} -> {new_value}')
+        except Exception as e:
+            self.return_error(f'failed to set config: {str(e)}')
+
+    @staticmethod
+    def _convert_value(value_str: str, original_value, attr_name: str):
+        """
+        @brief 将字符串值转换为与原值相同类型的值
+        
+        @param value_str 字符串形式的值
+        @param original_value 原始值，用于确定目标类型
+        @param attr_name 属性名
+        @return 转换后的值
+        """
+        # 如果原值是枚举类型
+        if isinstance(original_value, Enum):
+            enum_type = type(original_value)
+
+            # 尝试按名称查找
+            try:
+                return enum_type[value_str]
+            except KeyError:
+                pass
+
+            # 尝试按值查找
+            try:
+                # 对于整数值的枚举
+                return enum_type(int(value_str))
+            except (ValueError, KeyError):
+                pass
+            
+            raise ValueError(f"Cannot convert '{value_str}' to enum {enum_type.__name__}")
+        
+        # 如果原值是布尔类型
+        if isinstance(original_value, bool):
+            if value_str.lower() in ('true', '1', 'yes', 'on'):
+                return True
+            elif value_str.lower() in ('false', '0', 'no', 'off'):
+                return False
+            else:
+                raise ValueError(f"Cannot convert '{value_str}' to bool")
+        
+        # 如果原值是数据类实例
+        if is_dataclass(original_value):
+            raise ValueError(f"Cannot directly set complex dataclass object '{attr_name}'")
+        
+        if type(original_value) in (int, float, str):
+            return type(original_value)(value_str)
+
+        raise ValueError(f"Cannot convert '{value_str}' to {type(original_value).__name__}")
+
+
+tools: list[Type[Tool]] = [Read, Set]
 
 
 class Console(object):
