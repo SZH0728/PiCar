@@ -81,7 +81,7 @@ class BaseProcess(ABC, Generic[T]):
 
         return commands
 
-    def debug_picture(self, description: str, frame: ndarray[uint8, ...], colour: int = COLOR_YUV2BGR_I420):
+    def debug_picture(self, description: str, frame: ndarray[uint8, ...], colour: int | None = None):
         """
         @brief 添加调试图像
         @details 在调试模式下，将中间处理结果图像添加到调试列表中
