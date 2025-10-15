@@ -26,11 +26,11 @@ class CameraConfig(object):
     """
     base_config_type: BaseCameraConfigType = BaseCameraConfigType.VideoConfiguration  #: 基本配置类型
     size: tuple[int, int] = (640, 360)  #: 图像尺寸(宽度,高度)
-    format: str = 'BGR888'                 #: 图像格式
+    format: str = 'BGR888'              #: 图像格式
 
     reverse: bool = True                #: 图像翻转
 
-    fix_AE_AWB: bool = False             #: 是否固定自动曝光和白平衡
+    fix_AE_AWB: bool = False            #: 是否固定自动曝光和白平衡
     fix_wait_time: float = 0.5          #: 自动曝光和白平衡固定前的等待时间(秒)
 
 
@@ -51,7 +51,7 @@ class ControlConfig(object):
     @brief 控制配置数据类
     @details 存储控制模块相关的配置参数
     """
-    used: str = 'example'   #: 使用的控制模块
+    used: str = 'morphology'   #: 使用的控制模块
 
     save_debug: bool = True  #: 是否保存调试信息
     interval: int = 30       #: 控制间隔时间(毫秒)
