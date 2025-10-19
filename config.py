@@ -146,6 +146,7 @@ class Config(object):
     """
     web: bool = True   #: 是否启用Web服务
     port: int = 8080   #: Web服务端口号
+    pause: bool = False  #: 是否暂停工作
 
     camera: CameraConfig = field(default_factory=CameraConfig)  #: 摄像头配置
     motor: MotorConfig = field(default_factory=MotorConfig)     #: 电机配置
