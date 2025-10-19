@@ -123,7 +123,10 @@ def run_server_function(port: int = 8080):
     @details 在指定端口上启动Web服务器
     @param port 服务器端口号，默认为8080
     """
-    serve(app, host='0.0.0.0', port=port, threads=2)
+    try:
+        serve(app, host='0.0.0.0', port=port, threads=2)
+    except KeyboardInterrupt:
+        pass
 
 def run_server(port: int = 8080):
     """
