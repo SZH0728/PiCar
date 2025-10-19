@@ -6,6 +6,7 @@ from pathlib import Path
 from os.path import exists
 
 from config import Config, serialize, deserialize
+from data import Command, MotorType
 from web import run_server, pi_client
 from console import Console
 
@@ -58,7 +59,11 @@ def main():
             picture = camera.get_frame()
             commands = control.process(picture)
 
-            for command in commands:
+            if not config.pause:
+                for command in commands:
+                    handle.handle_command(command)
+            else:
+                command = Command(0, MotorType.motor, (0, 0, 0, 0))
                 handle.handle_command(command)
 
             if config.web:
@@ -66,23 +71,21 @@ def main():
 
     except KeyboardInterrupt:
         logger.info("Keyboard interrupt received, shutting down")
-        camera.close()
-        handle.close()
-
-        if ENABLE_CONFIG_FILE:
-            serialize(config, CONFIG_FILE)
-            logger.info("Configuration saved to file")
 
     except Exception as e:
         logger.error(f"Unexpected error occurred: {e}", exc_info=True)
+        raise
+
+    finally:
+        command = Command(0, MotorType.motor, (0, 0, 0, 0))
+        handle.handle_command(command)
+
         camera.close()
         handle.close()
 
         if ENABLE_CONFIG_FILE:
             serialize(config, CONFIG_FILE)
             logger.info("Configuration saved to file")
-
-        raise
 
 if __name__ == '__main__':
     main()
