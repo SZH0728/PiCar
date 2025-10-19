@@ -31,7 +31,7 @@ class MorphologyConfig(BaseConfig):
     @details 存储形态学图像处理过程所需的所有配置参数
     """
     name: str = 'morphology'           #: 配置名称
-    angle: int = 150                   #: 摄像头旋转角度
+    angle: int = 165                   #: 摄像头旋转角度
 
     offset: int = 40                   #: 图像左右偏移量，用于裁剪图像边缘减少畸变影响
 
@@ -51,7 +51,7 @@ class MorphologyConfig(BaseConfig):
     Ki: float = 0.0                    #: PID控制器积分系数
     Kd: float = 0.05                   #: PID控制器微分系数
 
-    turn_gain: float = 0.8             #: 转向增益，影响左右轮速度差异程度
+    turn_gain: float = 2.5            #: 转向增益，影响左右轮速度差异程度
 
 
 class MorphologyProcess(BaseProcess[MorphologyConfig]):
@@ -108,21 +108,21 @@ class MorphologyProcess(BaseProcess[MorphologyConfig]):
 
         # 如果处于调试模式，保存ROI图像用于调试
         if self.debug:
-            self.debug_picture('roi', roi)
+            self.debug_picture('1_roi', roi)
 
         # 色彩空间转换
         colour_picture = self.convert_color_space(roi)
 
         # 如果处于调试模式，保存色彩转换后的图像用于调试
         if self.debug:
-            self.debug_picture('colour', colour_picture)
+            self.debug_picture('2_colour', colour_picture)
 
         # 阈值处理
         binary = self.apply_threshold(colour_picture)
 
         # 如果处于调试模式，保存二值化图像用于调试
         if self.debug:
-            self.debug_picture('binary', binary)
+            self.debug_picture('3_binary', binary)
 
         # 对二值图像取反，使目标区域变为白色
         binary = cv2.bitwise_not(binary)
@@ -132,15 +132,10 @@ class MorphologyProcess(BaseProcess[MorphologyConfig]):
 
         # 如果处于调试模式，保存形态学处理后的图像用于调试
         if self.debug:
-            self.debug_picture('morphology', binary)
+            self.debug_picture('4_morphology', binary)
 
         # 计算重心位置
         x_line = self.calculate_centroid(binary, width)
-
-        # 如果处于调试模式，绘制可视化结果
-        if self.debug:
-            visual = self.create_visualization(binary, width, x_line)
-            self.debug_picture('visual', visual)
 
         # 计算误差值：(重心x坐标 - 图像中心x坐标) / (图像中心x坐标)
         # 归一化误差值到[-1, 1]区间
@@ -149,8 +144,14 @@ class MorphologyProcess(BaseProcess[MorphologyConfig]):
         # 计算转向值和速度
         steer, v_left, v_right = self.calculate_control_values(error)
 
+        # 如果处于调试模式，绘制可视化结果
+        if self.debug:
+            visual = self.create_visualization(binary, width, x_line)
+            self.debug_picture(f'5_visual_{steer}_{v_left}_{v_right}', visual)
+
         # 创建控制命令对象
         command = Command(self.uid, MotorType.motor, (0, v_left, 0, v_right), self.g)
+        # command = Command(self.uid, MotorType.motor, (0, 0, 0, 0), self.g)
         return command
 
     def initialize_perspective_transform(self, width: int, roi_height: int) -> None:
@@ -246,7 +247,7 @@ class MorphologyProcess(BaseProcess[MorphologyConfig]):
         area = moments["m00"] / 255.0
         
         # 判断区域面积是否足够大，防止误检
-        if area > self.config.min_size_percent * binary.size:
+        if area > self.config.min_size_percent * binary.size or True:
             # 计算区域重心的x坐标
             x_line: float = moments["m10"] / moments["m00"]
             # 更新最后检测到的重心位置
@@ -311,7 +312,7 @@ class MorphologyProcess(BaseProcess[MorphologyConfig]):
         steer = max(-1.0, min(1.0, steer))
 
         # 根据误差大小动态调整基本速度，误差越大速度越慢
-        v_base = max(30.0, min(180.0, 120 - 60 * abs(error)))
+        v_base = max(0.0, min(180.0, 65 - 10 * abs(error)))
 
         # 根据转向值计算左右轮的权重
         mix = max(-1.0, min(1.0, steer))
