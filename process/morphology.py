@@ -312,7 +312,7 @@ class MorphologyProcess(BaseProcess[MorphologyConfig]):
         steer = max(-1.0, min(1.0, steer))
 
         # 根据误差大小动态调整基本速度，误差越大速度越慢
-        v_base = max(0.0, min(180.0, 160-110 * abs(error)))
+        v_base = max(0.0, min(180.0, 180-90 * abs(error)))
 
         # 根据转向值计算左右轮的权重
         mix = max(-1.0, min(1.0, steer))
