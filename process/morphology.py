@@ -33,7 +33,7 @@ class MorphologyConfig(BaseConfig):
     name: str = 'morphology'           #: 配置名称
     angle: int = 165                   #: 摄像头旋转角度
 
-    offset: int = 40                   #: 图像左右偏移量，用于裁剪图像边缘减少畸变影响
+    offset: int = 90                   #: 图像左右偏移量，用于裁剪图像边缘减少畸变影响
 
     roi_area: float = 0.4              #: ROI(感兴趣区域)占 전체图像的比例
     colour_type: ColourType = ColourType.GREY  #: 颜色空间类型
@@ -47,9 +47,12 @@ class MorphologyConfig(BaseConfig):
 
     min_size_percent: float = 0.01     #: 最小区域百分比，用于过滤过小的区域
 
-    Kp: float = 0.8                    #: PID控制器比例系数
-    Ki: float = 0.0                    #: PID控制器积分系数
+    Kp: float = 0.6                    #: PID控制器比例系数
     Kd: float = 0.05                   #: PID控制器微分系数
+    Ki: float = 0                    #: PID控制器积分系数
+
+    v_base: int = 160
+    v_base_scale: int = 110
 
     turn_gain: float = 1            #: 转向增益，影响左右轮速度差异程度
 
@@ -90,21 +93,17 @@ class MorphologyProcess(BaseProcess[MorphologyConfig]):
 
         # 获取原始图像的高度和宽度
         height, width = self.origin_frame.shape[:2]
-        
-        # 计算感兴趣区域(ROI)的高度，并截取图像下半部分作为ROI
-        roi_height = int(height * self.config.roi_area)
-        roi = self.origin_frame[height - roi_height:, 0:width]
 
         # 如果透视变换矩阵未初始化，则创建透视变换矩阵
         if self.matrix is None:
-            self.initialize_perspective_transform(width, roi_height)
+            self.initialize_perspective_transform(width, height)
 
         # 对ROI区域进行透视变换校正
-        roi = cv2.warpPerspective(roi, self.matrix, (width, roi_height))
-        
-        # 根据偏移量裁剪图像左右边缘，减小畸变影响
-        roi = roi[:, self.config.offset:width - self.config.offset]
-        width = width - self.config.offset * 2
+        roi = cv2.warpPerspective(self.origin_frame, self.matrix, (width, height))
+
+        # 计算感兴趣区域(ROI)的高度，并截取图像下半部分作为ROI
+        roi_height = int(height * self.config.roi_area)
+        roi = roi[height - roi_height:, 0:width]
 
         # 如果处于调试模式，保存ROI图像用于调试
         if self.debug:
@@ -140,6 +139,12 @@ class MorphologyProcess(BaseProcess[MorphologyConfig]):
         # 计算误差值：(重心x坐标 - 图像中心x坐标) / (图像中心x坐标)
         # 归一化误差值到[-1, 1]区间
         error = (x_line - width / 2) / (width / 2)
+
+        if abs(error) >= 0.02:
+            self.sum_error += error
+
+        if abs(self.sum_error) > 20:
+            self.sum_error = 20 if self.sum_error > 20 else -20
 
         # 计算转向值和速度
         steer, v_left, v_right = self.calculate_control_values(error)
@@ -312,7 +317,7 @@ class MorphologyProcess(BaseProcess[MorphologyConfig]):
         steer = max(-1.0, min(1.0, steer))
 
         # 根据误差大小动态调整基本速度，误差越大速度越慢
-        v_base = max(0.0, min(180.0, 160-110 * abs(error)))
+        v_base = max(0.0, min(180.0, self.config.v_base - self.config.v_base_scale * abs(error)))
 
         # 根据转向值计算左右轮的权重
         mix = max(-1.0, min(1.0, steer))
