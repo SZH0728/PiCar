@@ -48,13 +48,13 @@ class MorphologyConfig(BaseConfig):
     min_size_percent: float = 0.01     #: 最小区域百分比，用于过滤过小的区域
 
     Kp: float = 0.6                    #: PID控制器比例系数
-    Ki: float = 0.0                    #: PID控制器积分系数
     Kd: float = 0.05                   #: PID控制器微分系数
+    Ki: float = 0                    #: PID控制器积分系数
 
     v_base: int = 60
     v_base_scale: int = 30
 
-    turn_gain: float = 0.8            #: 转向增益，影响左右轮速度差异程度
+    turn_gain: float = 1            #: 转向增益，影响左右轮速度差异程度
 
 
 class MorphologyProcess(BaseProcess[MorphologyConfig]):
@@ -143,6 +143,12 @@ class MorphologyProcess(BaseProcess[MorphologyConfig]):
         # 计算误差值：(重心x坐标 - 图像中心x坐标) / (图像中心x坐标)
         # 归一化误差值到[-1, 1]区间
         error = (x_line - width / 2) / (width / 2)
+
+        if abs(error) >= 0.02:
+            self.sum_error += error
+
+        if abs(self.sum_error) > 20:
+            self.sum_error = 20 if self.sum_error > 20 else -20
 
         logger.info(f'error: {error:.2f}')
 
