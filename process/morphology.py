@@ -51,7 +51,7 @@ class MorphologyConfig(BaseConfig):
     Kd: float = 0.05                   #: PID控制器微分系数
     Ki: float = 0.0                    #: PID控制器积分系数
 
-    v_base: int = 150
+    v_base: int = 180
     v_base_scale: int = 105
 
     turn_gain: float = 1            #: 转向增益，影响左右轮速度差异程度
